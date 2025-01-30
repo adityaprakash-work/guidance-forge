@@ -6,7 +6,7 @@ Temporary API for building agentic systems.
 # ---DEPENDENCIES-----------------------------------------------------------------------
 from contextlib import contextmanager
 from textwrap import dedent
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, Iterable
 
 import guidance
 from guidance import assistant, gen, silent, system, user
@@ -32,9 +32,8 @@ def tool(fn):
     def wrapper(lm, *args, **kwargs):
         with user():
             lm += ""
-        ...
 
-    return {"info": info, "raw_function": wrapper}
+    return {"name": name, "info": info, "fn_g": wrapper}
 
 
 @guidance
@@ -45,7 +44,12 @@ def invoke(lm: Model, user_prompt: str):
 
 
 class GrammarlessPolymorphicAgent:
-    def __init__(self, lm: Model, system_prompt: str = None, tools: dict = None):
+    def __init__(
+        self,
+        lm: Model,
+        system_prompt: str = None,
+        tools: Iterable[Dict[str, str, str]] = None,
+    ):
         self._lm = lm
         self.system_prompt = (
             system_prompt
@@ -53,12 +57,20 @@ class GrammarlessPolymorphicAgent:
             else "You are an extremely helpful assistant."
         )
         self._tools = tools
+        self.toolset_info = (
+            "\n".join([tool["info"] for tool in tools])
+            if tools
+            else "No tools are available."
+        )
         with self.toggle_ev(self._lm):
             self._lm_chat = self._lm + self.system_prompt
-            self._lm_tool = self._lm + tool_usage_system_prompt.format()
+            self._lm_tool = self._lm + tool_usage_system_prompt.format(
+                toolset_info=self.toolset_info
+            )
 
     def __add__(self, invocation: RawFunction) -> "GrammarlessPolymorphicAgent":
         self._lm_chat += invocation
+        return self
 
     @guidance
     def determine_tool_usage(self, lm: Model):
