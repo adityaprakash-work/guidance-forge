@@ -4,10 +4,11 @@ Guidance Forge
 """
 
 # ---DEPENDENCIES---------------------------------------------------------------
-from . import agent, prompts, settings
+from . import agents, models, prompts, settings
 
 __all__ = [
-    "agent",
+    "agents",
+    "models",
     "prompts",
     "settings",
 ]
